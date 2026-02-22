@@ -4,6 +4,8 @@ Pattern Recognition Assignment - CSE S4
 """
 
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Fix for Windows/Python 3.14 Tkinter crash
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.patches import FancyArrowPatch
@@ -452,7 +454,8 @@ def plot_results(log_likelihoods, A, B, pi, obs_sequence, history):
     plt.savefig('hmm_visualization.png', dpi=150, bbox_inches='tight',
                 facecolor=fig.get_facecolor())
     print("\n  Visualization saved → hmm_visualization.png")
-    plt.show()
+    plt.close()
+    print("  Open 'hmm_visualization.png' in your file explorer to view it.")
 
 
 # ─────────────────────────────────────────────
@@ -461,31 +464,93 @@ def plot_results(log_likelihoods, A, B, pi, obs_sequence, history):
 
 if __name__ == "__main__":
 
-    # ----- EXAMPLE: Coin Toss HMM -----
-    # 2 hidden states (Fair coin / Biased coin)
-    # Observations: 0 = Heads, 1 = Tails
-    obs_sequence   = [0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0]
-    n_hidden_states = 2
-    n_obs_symbols   = 2   # {0 = H, 1 = T}
+    print("=" * 60)
+    print("  HMM BAUM-WELCH — Interactive Input")
+    print("=" * 60)
 
+    # ── Observed sequence ──────────────────────────────────────────
+    print("\n  Enter the observed sequence as space-separated integers.")
+    print("  Example: 0 0 1 0 1 1 0 0 1")
+    while True:
+        try:
+            raw = input("  Observed sequence: ").strip()
+            obs_sequence = list(map(int, raw.split()))
+            if len(obs_sequence) < 2:
+                print("  ⚠  Please enter at least 2 observations.")
+                continue
+            if min(obs_sequence) < 0:
+                print("  ⚠  Observations must be non-negative integers (0-indexed).")
+                continue
+            break
+        except ValueError:
+            print("  ⚠  Invalid input. Enter integers separated by spaces.")
+
+    # ── Number of hidden states ────────────────────────────────────
+    while True:
+        try:
+            n_hidden_states = int(input("  Number of hidden states (e.g. 2): ").strip())
+            if n_hidden_states < 1:
+                print("  ⚠  Must be at least 1.")
+                continue
+            break
+        except ValueError:
+            print("  ⚠  Please enter a valid integer.")
+
+    # ── Number of observation symbols (optional) ───────────────────
+    auto_m = max(obs_sequence) + 1
+    print(f"\n  Number of distinct observation symbols.")
+    print(f"  (Press Enter to auto-detect: {auto_m})")
+    while True:
+        try:
+            raw_m = input("  Number of observation symbols: ").strip()
+            if raw_m == "":
+                n_obs_symbols = auto_m
+                break
+            n_obs_symbols = int(raw_m)
+            if n_obs_symbols < auto_m:
+                print(f"  ⚠  Must be at least {auto_m} (highest symbol in sequence + 1).")
+                continue
+            break
+        except ValueError:
+            print("  ⚠  Please enter a valid integer.")
+
+    # ── Optional: max iterations & tolerance ──────────────────────
+    print(f"\n  Max iterations (Press Enter for default 100):")
+    raw_iter = input("  Max iterations: ").strip()
+    max_iter = int(raw_iter) if raw_iter.isdigit() else 100
+
+    print(f"  Convergence tolerance (Press Enter for default 1e-6):")
+    raw_tol = input("  Tolerance: ").strip()
+    try:
+        tol = float(raw_tol) if raw_tol else 1e-6
+    except ValueError:
+        tol = 1e-6
+
+    # ── Show optional per-iteration details? ──────────────────────
+    show_details = input("\n  Show per-iteration α/β/γ details? (y/N): ").strip().lower() == 'y'
+
+    print()
+
+    # ── Run Baum-Welch ─────────────────────────────────────────────
     A, B, pi, log_likelihoods, history = baum_welch(
         obs_sequence=obs_sequence,
         n_hidden_states=n_hidden_states,
         n_obs_symbols=n_obs_symbols,
-        max_iter=100,
-        tol=1e-6,
+        max_iter=max_iter,
+        tol=tol,
         random_seed=42
     )
 
-    # Print detailed optional output for first few iterations
-    print("\n  ── OPTIONAL: Per-Iteration Details (first 3 iterations) ──")
-    for h in history[:3]:
-        print(f"\n  --- Iteration {h['iteration']} ---")
-        print(f"  P(O|λ)          = {h['P_O_lambda']:.6e}")
-        print(f"  log P(O|λ)      = {h['log_likelihood']:.6f}")
-        print(f"  Alpha (t=0):    {h['alpha'][0]}")
-        print(f"  Beta  (t=0):    {h['beta'][0]}")
-        print(f"  Gamma (t=0):    {h['gamma'][0]}")
+    # ── Optional per-iteration output ─────────────────────────────
+    if show_details:
+        print("\n  ── OPTIONAL: Per-Iteration Details (first 3 iterations) ──")
+        for h in history[:3]:
+            print(f"\n  --- Iteration {h['iteration']} ---")
+            print(f"  P(O|λ)       = {h['P_O_lambda']:.6e}")
+            print(f"  log P(O|λ)   = {h['log_likelihood']:.6f}")
+            print(f"  Alpha (t=0): {h['alpha'][0]}")
+            print(f"  Beta  (t=0): {h['beta'][0]}")
+            print(f"  Gamma (t=0): {h['gamma'][0]}")
 
-    # Generate visualizations
+    # ── Generate visualizations ────────────────────────────────────
     plot_results(log_likelihoods, A, B, pi, obs_sequence, history)
