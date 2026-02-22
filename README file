@@ -1,145 +1,88 @@
-# HMM Baum-Welch Algorithm
+# Hidden Markov Model using Baum-Welch Algorithm
 
-**Pattern Recognition Assignment — CSE S4**
-
----
-
-## Author
-
-| Field | Details |
-|---|---|
-| **Name** | GOVIND C MENON |
-| **Register Number** | TCR24CS031 |
-| **Course** | CSE S4 — Pattern Recognition |
+**Name:** GOVIND C MENON  
+**University Registration Number:** TCR24CS031
 
 ---
 
-## About
+## Description
 
-This repository implements the **Baum-Welch algorithm** (the EM algorithm for Hidden Markov Models) from scratch in Python.
-
-### What it computes
-- **π** — Initial state distribution
-- **A** — Transition matrix
-- **B** — Emission matrix
-- **P(O | λ)** — Probability of the observed sequence given the model
-- **α, β, γ, ξ** — Forward, backward, gamma, and xi values at each iteration *(optional output)*
-
-### Visualizations
-- `log P(O|λ)` vs. iterations (convergence curve)
-- `|Δ log P(O|λ)|` — convergence rate
-- Transition matrix **A** heatmap
-- Emission matrix **B** heatmap
-- Initial distribution **π** bar chart
-- **γ** (state posteriors) over time
-- **α** (forward probabilities) over time
-- **β** (backward probabilities) over time
-- State transition diagram
+This project implements a Hidden Markov Model (HMM) trained using the Baum-Welch algorithm (Expectation-Maximization) for unsupervised parameter estimation from observation sequences.
 
 ---
 
-## Requirements
+## Core Implementation (`hmm_baum_welch.py`)
 
-```bash
-pip install numpy matplotlib
-```
+- **Forward Algorithm** — Computes α_t(i) = P(O₁…Oₜ, qₜ=Sᵢ | λ)
+- **Backward Algorithm** — Computes β_t(i) = P(O_{t+1}…O_T | qₜ=Sᵢ, λ)
+- **Gamma (γ)** — State occupancy probabilities at each time step
+- **Xi (ξ)** — Joint state transition probabilities at each time step
+- **Baum-Welch EM Re-estimation** — Iteratively updates A, B, π until convergence
 
-> Python 3.7+ recommended.
+---
+
+## Numerical Stability Improvements
+
+The implementation includes the following guards to prevent NaN and inf during training:
+
+| Location | Fix | Reason |
+|---|---|---|
+| Log-likelihood | Epsilon clamped to 1e-300 | Prevents -inf on near-zero probabilities |
+| Gamma normalization | Zero rows clamped before division | Prevents NaN when a row sums to zero |
+| A matrix denominator | Zero values clamped before division | Prevents NaN in updated transition probabilities |
+| B matrix denominator | Zero values clamped before division | Prevents NaN in updated emission probabilities |
+
+---
+
+## Web App (`app.py`)
+
+- Configurable hidden states (N), observation symbols (M), max iterations, and tolerance
+- **Live metrics** — iteration count, final log-likelihood, convergence status, P(O|λ)
+- **Charts** — Log-likelihood convergence curve, |Δ log-likelihood| convergence rate
+- **State Transition Diagram** — Visual graph of states and transition probabilities
+- **Heatmaps** — Transition matrix A and Emission matrix B
+- **Intermediate Variables** — Alpha (α), Beta (β), Gamma (γ) tables from final iteration
+- **Final Learned Parameters** — Summary of converged A, B, π
 
 ---
 
 ## How to Run
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/hmm-baum-welch.git
-cd hmm-baum-welch
-```
-
-### 2. Install dependencies
+**1. Install dependencies:**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Run with the default example
+**2. Run the web app:**
 
 ```bash
-python hmm_baum_welch.py
+python app.py
 ```
 
-This runs a coin-toss HMM example:
-- **Observed sequence**: `[0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0]`
-- **Hidden states**: 2 (e.g., Fair coin / Biased coin)
-- **Observation symbols**: 2 (0 = Heads, 1 = Tails)
+**3. Open your browser and go to:**
 
-### 4. Use your own inputs
-
-Edit the bottom of `hmm_baum_welch.py`:
-
-```python
-obs_sequence    = [0, 1, 0, 2, 1, 0]   # your observed states (0-indexed)
-n_hidden_states = 3                      # number of hidden states
-n_obs_symbols   = 3                      # number of distinct observation symbols
 ```
+http://127.0.0.1:5000
+```
+
+Fill in your observed sequence, number of hidden states, and other parameters, then click **Run Baum-Welch** to see the results and visualizations.
 
 ---
 
-## Inputs & Outputs
+## Files
 
-**Inputs:**
-- `obs_sequence` — list of integer observed state indices (0-indexed)
-- `n_hidden_states` — number of hidden states N
-- `n_obs_symbols` — number of distinct observation symbols M *(optional, auto-detected if not given)*
-
-**Outputs:**
-- `A` — Transition matrix (N × N)
-- `B` — Emission matrix (N × M)
-- `pi` — Initial state distribution (N,)
-- `P(O|λ)` — Likelihood of the observation sequence
-- `log_likelihoods` — List of log-likelihoods per iteration
-- `history` — α, β, γ, ξ at each iteration *(printed for first 3 iterations)*
-- `hmm_visualization.png` — All visualizations saved to disk
+| File | Description |
+|---|---|
+| `hmm_baum_welch.py` | HMM class with Forward, Backward, and Baum-Welch implementation (CLI version) |
+| `app.py` | Flask web app for interactive input and visualization |
+| `requirements.txt` | Python dependencies |
+| `README.md` | Project documentation |
 
 ---
 
-## Algorithm Overview
+## Dependencies
 
-The Baum-Welch algorithm iteratively re-estimates HMM parameters using the EM framework:
-
-```
-Initialize A, B, π randomly
-
-Repeat until convergence:
-  E-step:
-    Compute α (forward algorithm)
-    Compute β (backward algorithm)
-    Compute γ = P(q_t = i | O, λ)
-    Compute ξ = P(q_t=i, q_{t+1}=j | O, λ)
-
-  M-step:
-    Update π ← γ_1
-    Update A ← sum(ξ) / sum(γ)
-    Update B ← sum(γ where obs=k) / sum(γ)
-
-Until |log P(O|λ_new) - log P(O|λ_old)| < tolerance
-```
-
----
-
-## File Structure
-
-```
-hmm-baum-welch/
-├── hmm_baum_welch.py      # Main implementation
-├── requirements.txt       # Dependencies
-└── README.md              # This file
-```
-
----
-
-## References
-
-- Rabiner, L. R. (1989). *A tutorial on hidden Markov models and selected applications in speech recognition.* Proceedings of the IEEE.
-- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning.* Springer.
+- **numpy** — Matrix operations and probability computations
+- **matplotlib** — Charts and state transition diagram
+- **flask** — Interactive web interface
