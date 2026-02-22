@@ -1,0 +1,145 @@
+# HMM Baum-Welch Algorithm
+
+**Pattern Recognition Assignment — CSE S4**
+
+---
+
+## Author
+
+| Field | Details |
+|---|---|
+| **Name** | GOVIND C MENON |
+| **Register Number** | TCR24CS031 |
+| **Course** | CSE S4 — Pattern Recognition |
+
+---
+
+## About
+
+This repository implements the **Baum-Welch algorithm** (the EM algorithm for Hidden Markov Models) from scratch in Python.
+
+### What it computes
+- **π** — Initial state distribution
+- **A** — Transition matrix
+- **B** — Emission matrix
+- **P(O | λ)** — Probability of the observed sequence given the model
+- **α, β, γ, ξ** — Forward, backward, gamma, and xi values at each iteration *(optional output)*
+
+### Visualizations
+- `log P(O|λ)` vs. iterations (convergence curve)
+- `|Δ log P(O|λ)|` — convergence rate
+- Transition matrix **A** heatmap
+- Emission matrix **B** heatmap
+- Initial distribution **π** bar chart
+- **γ** (state posteriors) over time
+- **α** (forward probabilities) over time
+- **β** (backward probabilities) over time
+- State transition diagram
+
+---
+
+## Requirements
+
+```bash
+pip install numpy matplotlib
+```
+
+> Python 3.7+ recommended.
+
+---
+
+## How to Run
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/hmm-baum-welch.git
+cd hmm-baum-welch
+```
+
+### 2. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Run with the default example
+
+```bash
+python hmm_baum_welch.py
+```
+
+This runs a coin-toss HMM example:
+- **Observed sequence**: `[0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0]`
+- **Hidden states**: 2 (e.g., Fair coin / Biased coin)
+- **Observation symbols**: 2 (0 = Heads, 1 = Tails)
+
+### 4. Use your own inputs
+
+Edit the bottom of `hmm_baum_welch.py`:
+
+```python
+obs_sequence    = [0, 1, 0, 2, 1, 0]   # your observed states (0-indexed)
+n_hidden_states = 3                      # number of hidden states
+n_obs_symbols   = 3                      # number of distinct observation symbols
+```
+
+---
+
+## Inputs & Outputs
+
+**Inputs:**
+- `obs_sequence` — list of integer observed state indices (0-indexed)
+- `n_hidden_states` — number of hidden states N
+- `n_obs_symbols` — number of distinct observation symbols M *(optional, auto-detected if not given)*
+
+**Outputs:**
+- `A` — Transition matrix (N × N)
+- `B` — Emission matrix (N × M)
+- `pi` — Initial state distribution (N,)
+- `P(O|λ)` — Likelihood of the observation sequence
+- `log_likelihoods` — List of log-likelihoods per iteration
+- `history` — α, β, γ, ξ at each iteration *(printed for first 3 iterations)*
+- `hmm_visualization.png` — All visualizations saved to disk
+
+---
+
+## Algorithm Overview
+
+The Baum-Welch algorithm iteratively re-estimates HMM parameters using the EM framework:
+
+```
+Initialize A, B, π randomly
+
+Repeat until convergence:
+  E-step:
+    Compute α (forward algorithm)
+    Compute β (backward algorithm)
+    Compute γ = P(q_t = i | O, λ)
+    Compute ξ = P(q_t=i, q_{t+1}=j | O, λ)
+
+  M-step:
+    Update π ← γ_1
+    Update A ← sum(ξ) / sum(γ)
+    Update B ← sum(γ where obs=k) / sum(γ)
+
+Until |log P(O|λ_new) - log P(O|λ_old)| < tolerance
+```
+
+---
+
+## File Structure
+
+```
+hmm-baum-welch/
+├── hmm_baum_welch.py      # Main implementation
+├── requirements.txt       # Dependencies
+└── README.md              # This file
+```
+
+---
+
+## References
+
+- Rabiner, L. R. (1989). *A tutorial on hidden Markov models and selected applications in speech recognition.* Proceedings of the IEEE.
+- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning.* Springer.
